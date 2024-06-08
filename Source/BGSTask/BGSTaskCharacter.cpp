@@ -9,6 +9,7 @@
 #include "GameFramework/SpringArmComponent.h"
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
+#include "BGSTaskGameMode.h"
 
 
 //////////////////////////////////////////////////////////////////////////
@@ -67,6 +68,63 @@ void ABGSTaskCharacter::BeginPlay()
 			Subsystem->AddMappingContext(DefaultMappingContext, 0);
 		}
 	}
+
+	GameMode = GetWorld()->GetAuthGameMode<ABGSTaskGameMode>();
+	GameMode->StartGame();
+}
+
+void ABGSTaskCharacter::Tick(float DeltaSeconds)
+{
+	if (!TraceObstacles)
+	{
+		return;
+	}
+
+	FHitResult Hit;
+	FVector TraceEnd = GetActorLocation() + FVector::DownVector * ObstacleTraceDistance;
+	
+	FCollisionObjectQueryParams ObjectParams;
+	ObjectParams.AddObjectTypesToQuery(JumpableObjectsChannel.GetValue());
+
+	FCollisionQueryParams QueryParams;
+	QueryParams.AddIgnoredActor(this);
+	QueryParams.AddIgnoredActors(JumpedActors);
+
+	GetWorld()->LineTraceSingleByObjectType(Hit, GetActorLocation(), TraceEnd, ObjectParams, QueryParams);
+
+	if (Hit.bBlockingHit)
+	{
+		JumpedActors.Add(Hit.GetActor());
+	}
+
+	JumpTime += DeltaSeconds;
+}
+
+void ABGSTaskCharacter::OnJumped_Implementation()
+{
+	TraceObstacles = true;
+}
+
+void ABGSTaskCharacter::Landed(const FHitResult& Hit)
+{
+	Super::Landed(Hit);
+
+	if (!TraceObstacles)
+	{
+		return;
+	}
+
+	int LandedActorIndex = JumpedActors.Find(Hit.GetActor());
+	if (LandedActorIndex >= 0)
+	{
+		JumpedActors.RemoveAt(LandedActorIndex);
+	}
+
+	GameMode->ProcessScore(JumpedActors, JumpTime);
+
+	JumpedActors.Empty();
+	TraceObstacles = false;
+	JumpTime = 0.0f;
 }
 
 //////////////////////////////////////////////////////////////////////////

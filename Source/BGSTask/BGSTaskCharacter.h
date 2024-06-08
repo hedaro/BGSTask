@@ -8,6 +8,8 @@
 #include "BGSTaskCharacter.generated.h"
 
 
+class ABGSTaskGameMode;
+
 UCLASS(config=Game)
 class ABGSTaskCharacter : public ACharacter
 {
@@ -40,6 +42,14 @@ class ABGSTaskCharacter : public ACharacter
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
 	class UInputAction* LookAction;
 
+	TArray<AActor*> JumpedActors;
+
+	bool TraceObstacles = false;
+
+	float JumpTime = 0.0f;
+
+	ABGSTaskGameMode* GameMode;
+
 public:
 	ABGSTaskCharacter();
 	
@@ -51,19 +61,29 @@ protected:
 
 	/** Called for looking input */
 	void Look(const FInputActionValue& Value);
-			
 
-protected:
 	// APawn interface
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 	
 	// To add mapping context
 	virtual void BeginPlay();
 
+	virtual void Tick(float DeltaSeconds) override;
+
+	UPROPERTY(EditDefaultsOnly, Category="Custom")
+	TEnumAsByte<ECollisionChannel> JumpableObjectsChannel;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Custom")
+	float ObstacleTraceDistance = 500.f;
+
 public:
 	/** Returns CameraBoom subobject **/
 	FORCEINLINE class USpringArmComponent* GetCameraBoom() const { return CameraBoom; }
 	/** Returns FollowCamera subobject **/
 	FORCEINLINE class UCameraComponent* GetFollowCamera() const { return FollowCamera; }
+
+	virtual void OnJumped_Implementation() override;
+
+	virtual void Landed(const FHitResult& Hit) override;
 };
 
