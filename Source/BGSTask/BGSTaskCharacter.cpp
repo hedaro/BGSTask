@@ -120,7 +120,10 @@ void ABGSTaskCharacter::Landed(const FHitResult& Hit)
 		JumpedActors.RemoveAt(LandedActorIndex);
 	}
 
-	GameMode->ProcessScore(JumpedActors, JumpTime);
+	if (JumpedActors.Num() > 0)
+	{
+		GameMode->ProcessScore(JumpedActors, JumpTime);
+	}
 
 	JumpedActors.Empty();
 	TraceObstacles = false;

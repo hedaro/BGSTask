@@ -31,7 +31,7 @@ public:
 
 protected:
 	UPROPERTY(BlueprintReadOnly)
-	int TotalScore;
+	float TotalScore;
 
 	UPROPERTY(EditDefaultsOnly)
 	float ObstacleJumpValue = 100.f;

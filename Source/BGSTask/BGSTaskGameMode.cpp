@@ -18,8 +18,8 @@ void ABGSTaskGameMode::LevelTimerFunction()
 
 		if (GEngine)
 		{
-			GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow, FString::Printf(TEXT("Game Over")));
-			GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow, FString::Printf(TEXT("Final Score: %f"), TotalScore));
+			GEngine->AddOnScreenDebugMessage(-1, 30.0f, FColor::Yellow, FString::Printf(TEXT("Game Over")));
+			GEngine->AddOnScreenDebugMessage(-1, 30.0f, FColor::Yellow, FString::Printf(TEXT("Final Score: %f"), TotalScore));
 		}
 
 		GetWorld()->GetTimerManager().ClearTimer(LevelTimerHandle);
@@ -39,18 +39,19 @@ ABGSTaskGameMode::ABGSTaskGameMode()
 
 void ABGSTaskGameMode::ProcessScore(const TArray<AActor*> &JumpedActors, float JumpTime)
 {
+	float Score = JumpedActors.Num() * ObstacleJumpValue * JumpTime * JumpTimeMultiplier;
+	TotalScore += Score;
+
 	if (GEngine)
 	{
 		//GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow, FString::Printf(TEXT("Landed")));
-		GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow, FString::Printf(TEXT("%d"), JumpedActors.Num()));
+		GEngine->AddOnScreenDebugMessage(-1, 2.0f, FColor::Yellow, FString::Printf(TEXT("%f (X%d)"), Score, JumpedActors.Num()));
 
 		/*for (AActor* Obstacle : JumpedActors)
 		{
 			GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow, Obstacle->GetName());
 		}*/
 	}
-
-	TotalScore += JumpedActors.Num()* ObstacleJumpValue* JumpTime* JumpTimeMultiplier;
 }
 
 void ABGSTaskGameMode::StartGame()
