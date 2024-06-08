@@ -3,26 +3,19 @@
 #include "BGSTaskGameMode.h"
 #include "BGSTaskCharacter.h"
 #include "UObject/ConstructorHelpers.h"
+#include "Blueprint/UserWidget.h"
 
 void ABGSTaskGameMode::LevelTimerFunction()
 {
-	if (GEngine)
+
+	float RemainingTime = LevelStartTime + LevelDurationSeconds - GetWorld()->TimeSeconds;
+	SetTime(RemainingTime);
+
+	if (RemainingTime <= 0)
 	{
-		GEngine->AddOnScreenDebugMessage(-1, 1.0f, FColor::Red, FString::Printf(TEXT("%f"), GetWorld()->TimeSeconds - LevelStartTime));
-		GEngine->AddOnScreenDebugMessage(-1, 1.0f, FColor::Green, FString::Printf(TEXT("%f"), TotalScore));
-	}
-
-	if (GetWorld()->TimeSeconds >= LevelStartTime + LevelDurationSeconds)
-	{
-		GameStarted = false;
-
-		if (GEngine)
-		{
-			GEngine->AddOnScreenDebugMessage(-1, 30.0f, FColor::Yellow, FString::Printf(TEXT("Game Over")));
-			GEngine->AddOnScreenDebugMessage(-1, 30.0f, FColor::Yellow, FString::Printf(TEXT("Final Score: %f"), TotalScore));
-		}
-
 		GetWorld()->GetTimerManager().ClearTimer(LevelTimerHandle);
+		
+		GameStarted = false;
 	}
 
 }
@@ -42,28 +35,23 @@ void ABGSTaskGameMode::ProcessScore(const TArray<AActor*> &JumpedActors, float J
 	float Score = JumpedActors.Num() * ObstacleJumpValue * JumpTime * JumpTimeMultiplier;
 	TotalScore += Score;
 
-	if (GEngine)
-	{
-		//GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow, FString::Printf(TEXT("Landed")));
-		GEngine->AddOnScreenDebugMessage(-1, 2.0f, FColor::Yellow, FString::Printf(TEXT("%f (X%d)"), Score, JumpedActors.Num()));
-
-		/*for (AActor* Obstacle : JumpedActors)
-		{
-			GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow, Obstacle->GetName());
-		}*/
-	}
+	SetScore(TotalScore, JumpedActors.Num());
 }
 
 void ABGSTaskGameMode::StartGame()
 {
-	if (GEngine)
+	if (MainMenuWidgetClass)
 	{
-		GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow, FString::Printf(TEXT("Game Start")));
+		APlayerController* PlayerController = GetWorld()->GetFirstPlayerController();
+		MainMenu = CreateWidget<UUserWidget>(PlayerController, MainMenuWidgetClass, TEXT("Main Menu"));
+		MainMenu->AddToViewport();
 	}
 
 	TotalScore = 0.f;
 	LevelStartTime = GetWorld()->TimeSeconds;
-	
+	SetTime(LevelStartTime);
+	SetScore(TotalScore, 0);
+
 	GameStarted = true;
 
 	GetWorld()->GetTimerManager().SetTimer(LevelTimerHandle, this, &ABGSTaskGameMode::LevelTimerFunction, 1.0f, true);

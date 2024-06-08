@@ -6,6 +6,8 @@
 #include "GameFramework/GameModeBase.h"
 #include "BGSTaskGameMode.generated.h"
 
+class UUserWidget;
+
 UCLASS(minimalapi)
 class ABGSTaskGameMode : public AGameModeBase
 {
@@ -29,6 +31,9 @@ public:
 	UFUNCTION(BlueprintCallable)
 	void StartGame();
 
+	UPROPERTY(EditDefaultsOnly)
+	TSubclassOf<UUserWidget> MainMenuWidgetClass;
+
 protected:
 	UPROPERTY(BlueprintReadOnly)
 	float TotalScore;
@@ -41,6 +46,15 @@ protected:
 
 	UPROPERTY(EditDefaultsOnly)
 	float LevelDurationSeconds = 180.f;
+
+	UPROPERTY(BlueprintReadOnly)
+	UUserWidget* MainMenu;
+
+	UFUNCTION(BlueprintImplementableEvent)
+	void SetTime(float Time);
+
+	UFUNCTION(BlueprintImplementableEvent)
+	void SetScore(float Score , int Multiplier);
 };
 
 
