@@ -15,6 +15,8 @@ class ABGSTaskCharacter : public ACharacter
 {
 	GENERATED_BODY()
 
+	void HandleJump(float DeltaSeconds);
+
 	/** Camera boom positioning the camera behind the character */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera, meta = (AllowPrivateAccess = "true"))
 	class USpringArmComponent* CameraBoom;
@@ -50,9 +52,15 @@ class ABGSTaskCharacter : public ACharacter
 
 	ABGSTaskGameMode* GameMode;
 
+	float ForwardWeight = 0.1;
+
+	float AccelerationRate = 0.01;
+
 public:
 	ABGSTaskCharacter();
 	
+	UPROPERTY(BlueprintReadOnly)
+	bool Accelerating = false;
 
 protected:
 
@@ -75,6 +83,9 @@ protected:
 
 	UPROPERTY(EditDefaultsOnly, Category = "Custom")
 	float ObstacleTraceDistance = 500.f;
+
+	UPROPERTY(EditDefaultsOnly)
+	float ForwardInputThreshold = 0.5;
 
 public:
 	/** Returns CameraBoom subobject **/

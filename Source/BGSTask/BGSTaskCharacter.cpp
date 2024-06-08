@@ -15,6 +15,33 @@
 //////////////////////////////////////////////////////////////////////////
 // ABGSTaskCharacter
 
+void ABGSTaskCharacter::HandleJump(float DeltaSeconds)
+{
+	if (!TraceObstacles)
+	{
+		return;
+	}
+
+	FHitResult Hit;
+	FVector TraceEnd = GetActorLocation() + FVector::DownVector * ObstacleTraceDistance;
+
+	FCollisionObjectQueryParams ObjectParams;
+	ObjectParams.AddObjectTypesToQuery(JumpableObjectsChannel.GetValue());
+
+	FCollisionQueryParams QueryParams;
+	QueryParams.AddIgnoredActor(this);
+	QueryParams.AddIgnoredActors(JumpedActors);
+
+	GetWorld()->LineTraceSingleByObjectType(Hit, GetActorLocation(), TraceEnd, ObjectParams, QueryParams);
+
+	if (Hit.bBlockingHit)
+	{
+		JumpedActors.Add(Hit.GetActor());
+	}
+
+	JumpTime += DeltaSeconds;
+}
+
 ABGSTaskCharacter::ABGSTaskCharacter()
 {
 	// Set size for collision capsule
@@ -34,11 +61,12 @@ ABGSTaskCharacter::ABGSTaskCharacter()
 
 	// Note: For faster iteration times these variables, and many more, can be tweaked in the Character Blueprint
 	// instead of recompiling to adjust them
-	GetCharacterMovement()->JumpZVelocity = 700.f;
+	GetCharacterMovement()->JumpZVelocity = 750.f;
 	GetCharacterMovement()->AirControl = 0.35f;
 	GetCharacterMovement()->MaxWalkSpeed = 500.f;
 	GetCharacterMovement()->MinAnalogWalkSpeed = 20.f;
 	GetCharacterMovement()->BrakingDecelerationWalking = 2000.f;
+	GetCharacterMovement()->GravityScale = 2.0;
 
 	// Create a camera boom (pulls in towards the player if there is a collision)
 	CameraBoom = CreateDefaultSubobject<USpringArmComponent>(TEXT("CameraBoom"));
@@ -75,29 +103,15 @@ void ABGSTaskCharacter::BeginPlay()
 
 void ABGSTaskCharacter::Tick(float DeltaSeconds)
 {
-	if (!TraceObstacles)
-	{
-		return;
-	}
+	const FRotator Rotation = Controller->GetControlRotation();
+	const FRotator YawRotation(0, Rotation.Yaw, 0);
 
-	FHitResult Hit;
-	FVector TraceEnd = GetActorLocation() + FVector::DownVector * ObstacleTraceDistance;
-	
-	FCollisionObjectQueryParams ObjectParams;
-	ObjectParams.AddObjectTypesToQuery(JumpableObjectsChannel.GetValue());
+	// get forward vector
+	const FVector ForwardDirection = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::X);
 
-	FCollisionQueryParams QueryParams;
-	QueryParams.AddIgnoredActor(this);
-	QueryParams.AddIgnoredActors(JumpedActors);
+	AddMovementInput(ForwardDirection, ForwardWeight);
 
-	GetWorld()->LineTraceSingleByObjectType(Hit, GetActorLocation(), TraceEnd, ObjectParams, QueryParams);
-
-	if (Hit.bBlockingHit)
-	{
-		JumpedActors.Add(Hit.GetActor());
-	}
-
-	JumpTime += DeltaSeconds;
+	HandleJump(DeltaSeconds);
 }
 
 void ABGSTaskCharacter::OnJumped_Implementation()
@@ -147,7 +161,6 @@ void ABGSTaskCharacter::SetupPlayerInputComponent(class UInputComponent* PlayerI
 
 		//Looking
 		EnhancedInputComponent->BindAction(LookAction, ETriggerEvent::Triggered, this, &ABGSTaskCharacter::Look);
-
 	}
 
 }
@@ -169,8 +182,13 @@ void ABGSTaskCharacter::Move(const FInputActionValue& Value)
 		// get right vector 
 		const FVector RightDirection = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::Y);
 
-		// add movement 
-		AddMovementInput(ForwardDirection, MovementVector.Y);
+		Accelerating = MovementVector.Y >= 1.0f && ForwardWeight < 1.0f;
+		if (MovementVector.Y > ForwardInputThreshold || MovementVector.Y < -ForwardInputThreshold)
+		{
+
+			// add movement 
+			ForwardWeight = FMath::Clamp(ForwardWeight + MovementVector.Y * AccelerationRate, 0.1, 1.0);
+		}
 		AddControllerYawInput(MovementVector.X);
 	}
 }
